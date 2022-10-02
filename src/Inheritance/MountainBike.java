@@ -16,7 +16,7 @@ public class MountainBike extends Bicycle {
 	public void setHeight(int newValue) {
 		this.seatHeight = newValue;
 	}
-
+	
 	@Override
 	public String printInfo() {
 		return (super.printInfo() + "\n" + "Height of the bicycle is = " + seatHeight);
