@@ -70,4 +70,51 @@ ALTER TABLE pii_data
   -- Apply this to all PII-related columns.
   ;
 
-Step 4: Creating UDFs to Handle XML Parsing in Snowflake
+------------------------------------
+INSERT INTO PII_DATA (
+    pii_vault_id,
+    buyer_identification_code,
+    buyer_first_name,
+    buyer_surname,
+    buyer_date_of_birth,
+    buyer_decision_maker_code,
+    buy_decision_maker_first_name,
+    buy_decision_maker_surname,
+    buy_decision_maker_date_of_birth,
+    seller_identification_code,
+    seller_first_name,
+    seller_surname,
+    seller_date_of_birth,
+    seller_decision_maker_code,
+    sell_decision_maker_first_name,
+    sell_decision_maker_surname,
+    sell_decision_maker_date_of_birth,
+    investment_decision_within_firm,
+    country_responsible_for_investment,
+    execution_within_firm,
+    country_supervising_execution
+)
+SELECT
+    UUID_STRING() AS pii_vault_id,
+    raw_data:"BuyerIdentificationCode"::STRING,
+    raw_data:"BuyerFirstName"::STRING,
+    raw_data:"BuyerSurname"::STRING,
+    TO_DATE(raw_data:"BuyerDateOfBirth"::STRING, 'YYYY-MM-DD'),
+    raw_data:"BuyerDecisionMakerCode"::STRING,
+    raw_data:"BuyDecisionMakerFirstName"::STRING,
+    raw_data:"BuyDecisionMakerSurname"::STRING,
+    TO_DATE(raw_data:"BuyDecisionMakerDateOfBirth"::STRING, 'YYYY-MM-DD'),
+    raw_data:"SellerIdentificationCode"::STRING,
+    raw_data:"SellerFirstName"::STRING,
+    raw_data:"SellerSurname"::STRING,
+    TO_DATE(raw_data:"SellerDateOfBirth"::STRING, 'YYYY-MM-DD'),
+    raw_data:"SellerDecisionMakerCode"::STRING,
+    raw_data:"SellDecisionMakerFirstName"::STRING,
+    raw_data:"SellDecisionMakerSurname"::STRING,
+    TO_DATE(raw_data:"SellDecisionMakerDateOfBirth"::STRING, 'YYYY-MM-DD'),
+    raw_data:"InvestmentDecisionWithinFirm"::STRING,
+    raw_data:"CountryResponsibleForInvestment"::STRING,
+    raw_data:"ExecutionWithinFirm"::STRING,
+    raw_data:"CountrySupervisingExecution"::STRING
+FROM customer_pii_temp;
+
