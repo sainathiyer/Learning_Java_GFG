@@ -118,4 +118,6 @@ SELECT
     XMLGET(raw_data, 'CustomerPIIData/CountrySupervisingExecution')::STRING AS country_supervising_execution
 FROM customer_pii_temp;
 
+'>([^<]+)<', 1, 1, 'e', 1)
+
 
