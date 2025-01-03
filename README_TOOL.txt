@@ -1,14 +1,15 @@
-INSERT INTO PII_DATA (
-    pii_vault_id,
-    buyer_identification_code,
-    buyer_first_name,
-    buyer_surname,
-    buyer_date_of_birth
-)
-SELECT
-    UUID_STRING() AS pii_vault_id,
-    parse_xml_tag(raw_data, 'BuyerIdentificationCode') AS buyer_id,
-    parse_xml_tag(raw_data, 'BuyerFirstName') AS buyer_first_name,
-    parse_xml_tag(raw_data, 'BuyerSurname') AS buyer_surname,
-    parse_xml_tag(raw_data, 'BuyerDateOfBirth')::DATE AS buyer_date_of_birth
-FROM customer_pii_temp;
+If you need to apply a masking policy to many columns, you can automate the process using Snowflake's scripting or external tools.
+
+DECLARE col_name STRING;
+BEGIN
+    FOR col_name IN (
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_name = 'PII_DATA'
+          AND column_name IN ('buyer_first_name', 'buyer_surname', 'buyer_date_of_birth', 'seller_first_name', 'seller_surname')
+    )
+    DO
+        EXECUTE IMMEDIATE 
+            'ALTER TABLE PII_DATA MODIFY COLUMN ' || col_name || ' SET MASKING POLICY pii_masking_policy';
+    END FOR;
+END;
