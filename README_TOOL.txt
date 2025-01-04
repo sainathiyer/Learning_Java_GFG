@@ -1,49 +1,29 @@
-Got it! You want to:
-
-Extract the Vault ID from the Transaction_MQ.xml file stored in the stage @customer_pii_stage.
-Match this Vault ID with the pii_vault_id column in the PII_DATA table in Snowflake.
-Fill empty tags in the XML file using the corresponding row's data from the PII_DATA table.
-Either use a Python UDF in Snowflake or explore ways to achieve this in Snowflake SQL.
-We can break this into steps:
-
-Step 1: Load XML Data into Snowflake
-To process the XML, first load the XML content into Snowflake. Use the GET function in Snowflake to read the XML file from the stage:
-
-sql
-Copy code
-SELECT $1 AS xml_content
-FROM @customer_pii_stage/Transaction_MQ.xml;
-Store the XML content into a Snowflake table (optional for easier processing):
-
-sql
-Copy code
+-- Step 1: Load XML Data into Snowflake
+-- Create a temporary table to store XML data
 CREATE TEMP TABLE TRANSACTION_XML_DATA (xml_content STRING);
 
+-- Insert XML content from the stage
 INSERT INTO TRANSACTION_XML_DATA
 SELECT $1 AS xml_content
 FROM @customer_pii_stage/Transaction_MQ.xml;
-Step 2: Extract the Vault ID
-Use XMLGET or XMLQUERY to extract the Vault ID from the loaded XML:
 
-sql
-Copy code
-SELECT XMLGET(XMLPARSE(DOCUMENT xml_content), '/UVMiFIRDocument/Document/FinInstrmRptgTxRpt/Tx/New/VaultId') AS vault_id
-FROM TRANSACTION_XML_DATA;
-Store the Vault ID in a variable for matching.
-
-Step 3: Match Vault ID with PII_DATA
-Join the extracted Vault ID with the PII_DATA table to find the corresponding row:
-
-sql
-Copy code
-SELECT t.vault_id, p.*
-FROM (
-    SELECT XMLGET(XMLPARSE(DOCUMENT xml_content), '/UVMiFIRDocument/Document/FinInstrmRptgTxRpt/Tx/New/VaultId') AS vault_id
+-- Step 2: Extract the Vault ID from the XML
+-- Extract Vault ID from the loaded XML
+WITH EXTRACTED_VAULT_ID AS (
+    SELECT 
+        XMLGET(XMLPARSE(DOCUMENT xml_content), '/UVMiFIRDocument/Document/FinInstrmRptgTxRpt/Tx/New/VaultId') AS vault_id,
+        xml_content
     FROM TRANSACTION_XML_DATA
-) t
+)
+-- Step 3: Match the Vault ID with the PII_DATA table
+SELECT 
+    e.vault_id,            -- Extracted Vault ID
+    e.xml_content,         -- Original XML content
+    p.*                    -- Matching row data from PII_DATA table
+FROM EXTRACTED_VAULT_ID e
 JOIN PII_DATA p
-ON t.vault_id = p.pii_vault_id;
-This gives the data required to enrich the XML.
+ON e.vault_id = p.pii_vault_id;
+
 
 Step 4: Enrich XML Using Python UDF
 Create a Python UDF in Snowflake to modify the XML using the matched row data.
