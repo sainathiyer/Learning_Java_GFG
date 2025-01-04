@@ -1,28 +1,41 @@
-WITH extracted_vault_id AS (
-    SELECT extract_vault_id(transaction_data) AS vault_id
-    FROM transaction_temp
-)
-SELECT enrich_xml_dynamic(transaction_data, OBJECT_CONSTRUCT(
-    'BuyerFirstName', pii_data.buyer_first_name,
-    'BuyerSurname', pii_data.buyer_surname,
-    'BuyerDateOfBirth', pii_data.buyer_date_of_birth,
-    'BuyerDecisionMakerCode', pii_data.buyer_decision_maker_code,
-    'BuyerDecisionMakerFirstName', pii_data.buyer_decision_maker_first_name,
-    'BuyerDecisionMakerSurname', pii_data.buyer_decision_maker_surname,
-    'BuyerDecisionMakerDateOfBirth', pii_data.buyer_decision_maker_date_of_birth,
-    'SellerIdentificationCode', pii_data.seller_identification_code,
-    'SellerFirstName', pii_data.seller_first_name,
-    'SellerSurname', pii_data.seller_surname,
-    'SellerDateOfBirth', pii_data.seller_date_of_birth,
-    'SellerDecisionMakerCode', pii_data.seller_decision_maker_code,
-    'SellerDecisionMakerFirstName', pii_data.seller_decision_maker_first_name,
-    'SellerDecisionMakerSurname', pii_data.seller_decision_maker_surname,
-    'SellerDecisionMakerDateOfBirth', pii_data.seller_decision_maker_date_of_birth,
-    'InvestmentDecisionWithinFirm', pii_data.investment_decision_within_firm,
-    'CountryOfBranchMakingInvestmentDecision', pii_data.country_of_branch_making_investment_decision,
-    'ExecutionWithinFirm', pii_data.execution_within_firm,
-    'CountryOfBranchSupervisingExecution', pii_data.country_of_branch_supervising_execution
-)) AS enriched_xml
-FROM pii_data
-JOIN extracted_vault_id
-    ON pii_data.pii_vault_id = extracted_vault_id.vault_id;
+import xml.etree.ElementTree as ET
+import json
+
+def enrich_xml_dynamic(xml_content: str, pii_data: dict) -> str:
+    """
+    Enriches the XML content with PII data.
+    
+    Parameters:
+        xml_content (str): The XML string to be enriched.
+        pii_data (dict): A dictionary-like object (Snowflake VARIANT) containing PII fields and values.
+
+    Returns:
+        str: The enriched XML as a string.
+    """
+    try:
+        # Parse the XML content
+        tree = ET.ElementTree(ET.fromstring(xml_content))
+        root = tree.getroot()
+
+        # Iterate over the PII data and update XML tags
+        for field, value in pii_data.items():
+            # Find all elements in the XML matching the field name
+            elements = root.findall(f".//{field}")
+
+            if elements:
+                # If the tag exists, update its value
+                for elem in elements:
+                    elem.text = str(value)
+            else:
+                # If the tag doesn't exist, add it to the root (or you can choose a specific node)
+                new_elem = ET.Element(field)
+                new_elem.text = str(value)
+                root.append(new_elem)
+
+        # Convert the updated XML tree back to a string
+        enriched_xml = ET.tostring(root, encoding="unicode")
+        return enriched_xml
+
+    except Exception as e:
+        # Handle parsing or enrichment errors
+        return f"Error enriching XML: {str(e)}"
