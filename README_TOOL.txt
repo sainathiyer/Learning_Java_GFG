@@ -46,8 +46,18 @@ def find_matching_pii_row(vault_id):
 $$;
 
 
+WITH xml_data AS (
+    SELECT $1 AS xml_content
+    FROM TABLE(
+        FILES(
+            '@customer_pii_stage',
+            PATTERN => '.*Transaction_MQ.xml'
+        )
+    )
+)
 SELECT extract_vault_id(xml_content)
-FROM @customer_pii_stage;
+FROM xml_data;
+
 
 
 SELECT find_matching_pii_row('47dbcf05-ea8e-4c25-a5e4-acea1315f758');
