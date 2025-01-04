@@ -1,12 +1,14 @@
-CREATE OR REPLACE MASKING POLICY pii_masking_policy_date
-AS (val DATE) 
-RETURNS STRING ->
-CASE
-    WHEN CURRENT_ROLE() IN ('AUTHORIZED_ROLE') THEN TO_CHAR(val, 'YYYY-MM-DD')
-    ELSE 'MASKED'
-END;
-
-
-ALTER TABLE PII_DATA
-MODIFY COLUMN buyer_date_of_birth 
-SET MASKING POLICY pii_masking_policy_date;
+<New>
+	
+	<!-- Newly Added Vault ID -->
+	<VaultId>VAULT123456789</VaultId>
+	<!-- Newly Added Missing PII Fields -->
+	<BuyerFirstName></BuyerFirstName>
+	<BuyerLastName></BuyerLastName>
+	<BuyerDateOfBirth></BuyerDateOfBirth>
+	<SellerFirstName></SellerFirstName>
+	<SellerLastName></SellerLastName>
+	<SellerDateOfBirth></SellerDateOfBirth>
+	<InvestmentDecisionMaker></InvestmentDecisionMaker>
+	<ExecutionDecisionMaker></ExecutionDecisionMaker>
+</New>
