@@ -1,105 +1,134 @@
-package com.piivault.utils;
+Got it! You want to:
 
-import org.w3c.dom.*;
-import javax.xml.parsers.*;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.util.HashMap;
-import java.util.Map;
+Extract the Vault ID from the Transaction_MQ.xml file stored in the stage @customer_pii_stage.
+Match this Vault ID with the pii_vault_id column in the PII_DATA table in Snowflake.
+Fill empty tags in the XML file using the corresponding row's data from the PII_DATA table.
+Either use a Python UDF in Snowflake or explore ways to achieve this in Snowflake SQL.
+We can break this into steps:
 
-public class EnrichTransactionXML {
+Step 1: Load XML Data into Snowflake
+To process the XML, first load the XML content into Snowflake. Use the GET function in Snowflake to read the XML file from the stage:
 
-    public static String enrichXML(String xmlContent) throws Exception {
-        // Step 1: Parse the XML and extract the Vault ID
-        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-        factory.setNamespaceAware(false);  // Disable namespace awareness
-        DocumentBuilder builder = factory.newDocumentBuilder();
-        Document document = builder.parse(new java.io.ByteArrayInputStream(xmlContent.getBytes()));
+sql
+Copy code
+SELECT $1 AS xml_content
+FROM @customer_pii_stage/Transaction_MQ.xml;
+Store the XML content into a Snowflake table (optional for easier processing):
 
-        // Extract VaultId using normal XPath query (without namespaces)
-        String vaultId = document.getElementsByTagName("VaultId").item(0).getTextContent();
+sql
+Copy code
+CREATE TEMP TABLE TRANSACTION_XML_DATA (xml_content STRING);
 
-        // Step 2: Connect to Snowflake and fetch data for the Vault ID
-        Map<String, String> piiData = new HashMap<>();
-        try (Connection conn = DriverManager.getConnection("jdbc:snowflake://dtccdrvesdev.us-east-1.snowflakecomputing.com", "srvc_dse_app_dev", "Temp4567!")) {
-            String query = "SELECT buyer_identification_code, buyer_first_name, buyer_surname, buyer_date_of_birth, buyer_decision_maker_code, " +
-                           "buyer_decision_maker_first_name, buyer_decision_maker_surname, buyer_decision_maker_date_of_birth, seller_identification_code, " +
-                           "seller_first_name, seller_surname, seller_date_of_birth, seller_decision_maker_code, seller_decision_maker_first_name, " +
-                           "seller_decision_maker_surname, seller_decision_maker_date_of_birth, investment_decision_within_firm, country_of_branch_making_investment_decision, " +
-                           "execution_within_firm, country_of_branch_supervising_execution FROM PII_DATA WHERE vault_id = ?";
-            try (PreparedStatement stmt = conn.prepareStatement(query)) {
-                stmt.setString(1, vaultId);
-                try (ResultSet rs = stmt.executeQuery()) {
-                    if (rs.next()) {
-                        piiData.put("buyeridentificationcode", rs.getString("buyer_identification_code"));
-                        piiData.put("buyerfirstname", rs.getString("buyer_first_name"));
-                        piiData.put("buyersurname", rs.getString("buyer_surname"));
-                        piiData.put("buyerdateofbirth", rs.getString("buyer_date_of_birth"));
-                        piiData.put("buyerdecisionmakercode", rs.getString("buyer_decision_maker_code"));
-                        piiData.put("buyerdecisionmakerfirstname", rs.getString("buyer_decision_maker_first_name"));
-                        piiData.put("buyerdecisionmakersurname", rs.getString("buyer_decision_maker_surname"));
-                        piiData.put("buyerdecisionmakerdateofbirth", rs.getString("buyer_decision_maker_date_of_birth"));
-                        piiData.put("selleridentificationcode", rs.getString("seller_identification_code"));
-                        piiData.put("sellerfirstname", rs.getString("seller_first_name"));
-                        piiData.put("sellersurname", rs.getString("seller_surname"));
-                        piiData.put("sellerdateofbirth", rs.getString("seller_date_of_birth"));
-                        piiData.put("sellerdecisionmakercode", rs.getString("seller_decision_maker_code"));
-                        piiData.put("sellerdecisionmakerfirstname", rs.getString("seller_decision_maker_first_name"));
-                        piiData.put("sellerdecisionmakersurname", rs.getString("seller_decision_maker_surname"));
-                        piiData.put("sellerdecisionmakerdateofbirth", rs.getString("seller_decision_maker_date_of_birth"));
-                        piiData.put("investmentdecisionwithinfirm", rs.getString("investment_decision_within_firm"));
-                        piiData.put("countryofbranchmakinginvestmentdecision", rs.getString("country_of_branch_making_investment_decision"));
-                        piiData.put("executionwithinfirm", rs.getString("execution_within_firm"));
-                        piiData.put("countryofbranchsupervisingexecution", rs.getString("country_of_branch_supervising_execution"));
-                    }
-                }
-            }
-        }
+INSERT INTO TRANSACTION_XML_DATA
+SELECT $1 AS xml_content
+FROM @customer_pii_stage/Transaction_MQ.xml;
+Step 2: Extract the Vault ID
+Use XMLGET or XMLQUERY to extract the Vault ID from the loaded XML:
 
-        // Step 3: Enrich the missing fields in the XML
-        String[] piiFields = {
-            "BuyerFirstName", "BuyerSurname", "BuyerDateOfBirth", "BuyerDecisionMakerCode", "BuyerDecisionMakerFirstName", "BuyerDecisionMakerSurname", 
-            "BuyerDecisionMakerDateOfBirth", "SellerIdentificationCode", "SellerFirstName", "SellerSurname", "SellerDateOfBirth", "SellerDecisionMakerCode",
-            "SellerDecisionMakerFirstName", "SellerDecisionMakerSurname", "SellerDecisionMakerDateOfBirth", "InvestmentDecisionWithinFirm", 
-            "CountryOfBranchMakingInvestmentDecision", "ExecutionWithinFirm", "CountryOfBranchSupervisingExecution"
-        };
+sql
+Copy code
+SELECT XMLGET(XMLPARSE(DOCUMENT xml_content), '/UVMiFIRDocument/Document/FinInstrmRptgTxRpt/Tx/New/VaultId') AS vault_id
+FROM TRANSACTION_XML_DATA;
+Store the Vault ID in a variable for matching.
 
-        for (String field : piiFields) {
-            NodeList fieldNodes = document.getElementsByTagName(field);  // No namespace here
+Step 3: Match Vault ID with PII_DATA
+Join the extracted Vault ID with the PII_DATA table to find the corresponding row:
 
-            if (fieldNodes.getLength() > 0) {
-                Element fieldElement = (Element) fieldNodes.item(0);
-                if (fieldElement.getTextContent().trim().isEmpty()) {
-                    String fieldValue = piiData.getOrDefault(field.toLowerCase(), "");
-                    fieldElement.setTextContent(fieldValue);
-                }
-            }
-        }
+sql
+Copy code
+SELECT t.vault_id, p.*
+FROM (
+    SELECT XMLGET(XMLPARSE(DOCUMENT xml_content), '/UVMiFIRDocument/Document/FinInstrmRptgTxRpt/Tx/New/VaultId') AS vault_id
+    FROM TRANSACTION_XML_DATA
+) t
+JOIN PII_DATA p
+ON t.vault_id = p.pii_vault_id;
+This gives the data required to enrich the XML.
 
-        // Step 4: Return the updated XML as string
-        return documentToString(document);
-    }
+Step 4: Enrich XML Using Python UDF
+Create a Python UDF in Snowflake to modify the XML using the matched row data.
 
-    private static String documentToString(Document doc) throws Exception {
-        // Convert Document back to String
-        java.io.StringWriter writer = new java.io.StringWriter();
-        TransformerFactory tf = TransformerFactory.newInstance();
-        Transformer transformer = tf.newTransformer();
-        transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-        transformer.transform(new DOMSource(doc), new StreamResult(writer));
-        return writer.toString();
-    }
+Python UDF Code
+sql
+Copy code
+CREATE OR REPLACE FUNCTION ENRICH_XML(xml_input STRING, enrichment_data OBJECT)
+RETURNS STRING
+LANGUAGE PYTHON
+RUNTIME_VERSION = '3.8'
+HANDLER = 'enrich_xml'
+AS $$
+import xml.etree.ElementTree as ET
 
-    public static void main(String[] args) {
-        // Sample usage
-        try {
-            String xml = "<your XML string here>";
-            String enrichedXml = enrichXML(xml);
-            System.out.println(enrichedXml);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-}
+def enrich_xml(xml_input, enrichment_data):
+    try:
+        # Parse the XML input
+        root = ET.fromstring(xml_input)
+
+        # Find VaultId
+        vault_id_elem = root.find('.//VaultId')
+        if vault_id_elem is None:
+            raise ValueError("VaultId not found in the input XML.")
+        
+        vault_id = vault_id_elem.text.strip()
+
+        # Enrich the XML with new data
+        for key, value in enrichment_data.items():
+            if value is not None:
+                elem = root.find(f'.//{key}')
+                if elem is None:
+                    new_elem = ET.SubElement(root.find('.//New'), key)
+                    new_elem.text = value
+                else:
+                    elem.text = value
+
+        # Generate the enriched XML
+        return ET.tostring(root, encoding='unicode')
+
+    except Exception as e:
+        raise RuntimeError(f"Error during XML enrichment: {str(e)}")
+$$;
+Step 5: Call Python UDF to Enrich XML
+Pass the XML and matched data to the UDF for enrichment:
+
+sql
+Copy code
+SELECT ENRICH_XML(xml_content, OBJECT_AGG(key, value))
+FROM (
+    SELECT 
+        xml_content, 
+        OBJECT_CONSTRUCT(
+            'BuyerFirstName', p.buyer_first_name,
+            'BuyerSurname', p.buyer_surname,
+            'BuyerDateOfBirth', p.buyer_date_of_birth,
+            'InvestmentDecisionWithinFirm', p.investment_decision_within_firm,
+            'ExecutionWithinFirm', p.execution_within_firm
+        ) AS enrichment_data
+    FROM TRANSACTION_XML_DATA t
+    JOIN PII_DATA p
+    ON XMLGET(XMLPARSE(DOCUMENT t.xml_content), '/UVMiFIRDocument/Document/FinInstrmRptgTxRpt/Tx/New/VaultId') = p.pii_vault_id
+);
+Alternate: Use Snowflake SQL for Enrichment
+If Python UDF is not preferred, you can use Snowflake's XMLMODIFY to modify the XML directly:
+
+Extract and match the Vault ID.
+Use XMLMODIFY to update specific nodes with data from the PII_DATA table.
+Example:
+
+sql
+Copy code
+UPDATE TRANSACTION_XML_DATA
+SET xml_content = XMLMODIFY(
+    xml_content,
+    'replace value of (/UVMiFIRDocument/Document/FinInstrmRptgTxRpt/Tx/New/BuyerFirstName)[1] with "John"'
+)
+WHERE EXISTS (
+    SELECT 1
+    FROM PII_DATA
+    WHERE XMLGET(XMLPARSE(DOCUMENT xml_content), '/UVMiFIRDocument/Document/FinInstrmRptgTxRpt/Tx/New/VaultId') = pii_vault_id
+);
+Final Output
+After enrichment, you can:
+
+Save the enriched XML back to a stage or table.
+Retrieve the enriched XML for further processing.
+Let me know which part you'd like to dive deeper into or clarify further!
