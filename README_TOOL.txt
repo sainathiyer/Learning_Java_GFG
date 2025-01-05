@@ -1,17 +1,49 @@
 CREATE OR REPLACE FUNCTION enrich_transaction_data(
     transaction_data STRING,
-    pii_data VARIANT
+    pii_data VARIANT,
+    stage_name STRING,  -- The name of the Snowflake stage
+    file_name STRING    -- The desired file name in the stage
 )
 RETURNS STRING
 LANGUAGE PYTHON
 RUNTIME_VERSION = '3.8'
-PACKAGES = ('xmltodict')
+PACKAGES = ('xmltodict', 'snowflake-connector-python')
 HANDLER = 'handler'
 AS $$
+
 import xml.etree.ElementTree as ET
 import json
+import snowflake.connector
 
-def handler(transaction_data: str, pii_data: dict) -> str:
+# Snowflake connection parameters
+def get_snowflake_connection():
+    conn = snowflake.connector.connect(
+        user='<your_snowflake_username>',
+        password='<your_snowflake_password>',
+        account='<your_account>',
+        warehouse='<your_warehouse>',
+        database='<your_database>',
+        schema='<your_schema>'
+    )
+    return conn
+
+# Function to write the XML content to a file on Snowflake stage
+def write_to_stage(xml_data, stage_name, file_name):
+    try:
+        # Establish Snowflake connection
+        conn = get_snowflake_connection()
+        cursor = conn.cursor()
+
+        # Write the XML content to the stage as a file
+        file_path = f'@{stage_name}/{file_name}'
+        cursor.execute(f"PUT FILE://{file_path} @<your_stage>")
+
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        return f"Error writing to stage: {str(e)}"
+
+def handler(transaction_data: str, pii_data: dict, stage_name: str, file_name: str) -> str:
     try:
         # Parse the transaction_data XML
         root = ET.fromstring(transaction_data)
@@ -33,51 +65,14 @@ def handler(transaction_data: str, pii_data: dict) -> str:
         # Add other fields from pii_dict to enrich the XML as needed...
 
         # Convert the enriched XML back to a string
-        enriched_xml = ET.tostring(root, encoding='unicode')
+        enriched_xml = ET.tostring(root, encoding="utf-8", method="xml").decode("utf-8")
 
-        return enriched_xml
+        # Write the enriched XML content to the stage as a file
+        write_to_stage(enriched_xml, stage_name, file_name)
+
+        return f"XML successfully enriched and written to stage {stage_name} as {file_name}"
 
     except Exception as e:
         return f"Error processing XML: {str(e)}"
+
 $$;
-
-
-SELECT 
-    t.transaction_data,
-    enrich_transaction_data(t.transaction_data, OBJECT_CONSTRUCT(
-        'BuyerFirstName', p.buyer_first_name,
-        'BuyerSurname', p.buyer_surname,
-        'BuyerDateOfBirth', p.buyer_date_of_birth,
-        'SellerFirstName', p.seller_first_name,
-        'SellerSurname', p.seller_surname,
-        'InvestmentDecisionWithinFirm', p.investment_decision_within_firm
-        -- Add all necessary PII fields here
-    )) AS enriched_xml
-FROM transaction_temp t
-JOIN PII_DATA p 
-ON p.pii_vault_id = extract_vault_id(t.transaction_data);
-
-
-CREATE OR REPLACE STAGE enriched_xml_stage;
-
--- Export enriched XML to the stage
-COPY INTO @enriched_xml_stage/enriched_data.xml
-FROM (
-    SELECT enriched_xml 
-    FROM (
-        SELECT 
-            t.transaction_data,
-            enrich_transaction_data(t.transaction_data, OBJECT_CONSTRUCT(
-                'BuyerFirstName', p.buyer_first_name,
-                'BuyerSurname', p.buyer_surname,
-                'BuyerDateOfBirth', p.buyer_date_of_birth,
-                'SellerFirstName', p.seller_first_name,
-                'SellerSurname', p.seller_surname,
-                'InvestmentDecisionWithinFirm', p.investment_decision_within_firm
-            )) AS enriched_xml
-        FROM transaction_temp t
-        JOIN PII_DATA p 
-        ON p.pii_vault_id = extract_vault_id(t.transaction_data)
-    )
-)
-FILE_FORMAT = (TYPE = 'CSV' FIELD_OPTIONALLY_ENCLOSED_BY = '"' ESCAPE_UNENCLOSED_FIELD = NONE);
