@@ -1,27 +1,7 @@
-CREATE OR REPLACE FUNCTION enrich_transaction_data(
-    transaction_data STRING,
-    pii_data VARIANT
-)
-RETURNS STRING
-LANGUAGE PYTHON
-RUNTIME_VERSION = '3.8'
-PACKAGES = ('xmltodict', 'boto3')
-HANDLER = 'handler'
-AS $$
-import xml.etree.ElementTree as ET
-import json
-import boto3
-from datetime import datetime
+{ "status": "success", "s3_file_url": "s3://your-bucket/enriched_data_20250101123000.xml" }
 
-def handler(transaction_data: str, pii_data: dict) -> str:
-    try:
-        # Parse the transaction_data XML
-        root = ET.fromstring(transaction_data)
-        
-        # Convert PII data to a dictionary for easier processing
-        pii_dict = json.loads(json.dumps(pii_data))
 
-        # Example of enriching XML with PII data
+ # Enrich the XML with the PII data by checking each field and updating corresponding XML tags
         if 'BuyerFirstName' in pii_dict:
             buyer_element = root.find('.//BuyerFirstName')
             if buyer_element is not None:
@@ -32,52 +12,87 @@ def handler(transaction_data: str, pii_data: dict) -> str:
             if surname_element is not None:
                 surname_element.text = pii_dict['BuyerSurname']
 
-        # Add other fields from pii_dict to enrich the XML as needed...
-        
-        # Convert the enriched XML back to a string
-        enriched_xml = ET.tostring(root, encoding="utf-8", method="xml").decode("utf-8")
+        if 'BuyerDateOfBirth' in pii_dict:
+            dob_element = root.find('.//BuyerDateOfBirth')
+            if dob_element is not None:
+                dob_element.text = pii_dict['BuyerDateOfBirth']
 
-        # Initialize the boto3 client for S3
-        s3 = boto3.client('s3')
-        
-        # Define the S3 bucket name and the file name
-        bucket_name = "your-s3-bucket-name"
-        file_name = f"enriched_data_{datetime.now().strftime('%Y%m%d%H%M%S')}.xml"
-        
-        # Upload the enriched XML to S3
-        s3.put_object(
-            Bucket=bucket_name,
-            Key=file_name,
-            Body=enriched_xml,
-            ContentType="application/xml"
-        )
+        if 'SellerFirstName' in pii_dict:
+            seller_firstname_element = root.find('.//SellerFirstName')
+            if seller_firstname_element is not None:
+                seller_firstname_element.text = pii_dict['SellerFirstName']
 
-        # Return the S3 file URL for reference
-        return {"status": "success", "s3_file_url": f"s3://{bucket_name}/{file_name}"}
+        if 'SellerSurname' in pii_dict:
+            seller_surname_element = root.find('.//SellerSurname')
+            if seller_surname_element is not None:
+                seller_surname_element.text = pii_dict['SellerSurname']
 
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
-$$;
+        if 'InvestmentDecisionWithinFirm' in pii_dict:
+            investment_element = root.find('.//InvestmentDecisionWithinFirm')
+            if investment_element is not None:
+                investment_element.text = pii_dict['InvestmentDecisionWithinFirm']
 
---Step to Call this method for enriching the XML and storing to S3
-WITH enriched_data AS (
-    SELECT enrich_transaction_data(
-        t.transaction_data, 
-        OBJECT_CONSTRUCT(
-            'BuyerFirstName', p.buyer_first_name,
-            'BuyerSurname', p.buyer_surname,
-            'BuyerDateOfBirth', p.buyer_date_of_birth,
-            'SellerFirstName', p.seller_first_name,
-            'SellerSurname', p.seller_surname,
-            'InvestmentDecisionWithinFirm', p.investment_decision_within_firm
-        ) AS enriched_xml
-    )
-    FROM transaction_temp t
-    JOIN PII_DATA p
-    ON p.pii_vault_id = extract_vault_id(t.transaction_data)
-)
+        if 'BuyerIdentificationCode' in pii_dict:
+            buyer_id_element = root.find('.//BuyerIdentificationCode')
+            if buyer_id_element is not None:
+                buyer_id_element.text = pii_dict['BuyerIdentificationCode']
 
--- Extracting the S3 file URL from the returned JSON object
-SELECT 
-    enriched_xml:s3_file_url::STRING AS s3_file_url
-FROM enriched_data;
+        if 'BuyerDecisionMakerCode' in pii_dict:
+            buyer_decision_maker_code_element = root.find('.//BuyerDecisionMakerCode')
+            if buyer_decision_maker_code_element is not None:
+                buyer_decision_maker_code_element.text = pii_dict['BuyerDecisionMakerCode']
+
+        if 'SellerIdentificationCode' in pii_dict:
+            seller_id_element = root.find('.//SellerIdentificationCode')
+            if seller_id_element is not None:
+                seller_id_element.text = pii_dict['SellerIdentificationCode']
+
+        if 'SellerDecisionMakerCode' in pii_dict:
+            seller_decision_maker_code_element = root.find('.//SellerDecisionMakerCode')
+            if seller_decision_maker_code_element is not None:
+                seller_decision_maker_code_element.text = pii_dict['SellerDecisionMakerCode']
+
+        if 'BuyerDecisionMakerFirstName' in pii_dict:
+            buyer_decision_maker_firstname_element = root.find('.//BuyerDecisionMakerFirstName')
+            if buyer_decision_maker_firstname_element is not None:
+                buyer_decision_maker_firstname_element.text = pii_dict['BuyerDecisionMakerFirstName']
+
+        if 'BuyerDecisionMakerSurname' in pii_dict:
+            buyer_decision_maker_surname_element = root.find('.//BuyerDecisionMakerSurname')
+            if buyer_decision_maker_surname_element is not None:
+                buyer_decision_maker_surname_element.text = pii_dict['BuyerDecisionMakerSurname']
+
+        if 'BuyerDecisionMakerDateOfBirth' in pii_dict:
+            buyer_decision_maker_dob_element = root.find('.//BuyerDecisionMakerDateOfBirth')
+            if buyer_decision_maker_dob_element is not None:
+                buyer_decision_maker_dob_element.text = pii_dict['BuyerDecisionMakerDateOfBirth']
+
+        if 'SellerDecisionMakerFirstName' in pii_dict:
+            seller_decision_maker_firstname_element = root.find('.//SellerDecisionMakerFirstName')
+            if seller_decision_maker_firstname_element is not None:
+                seller_decision_maker_firstname_element.text = pii_dict['SellerDecisionMakerFirstName']
+
+        if 'SellerDecisionMakerSurname' in pii_dict:
+            seller_decision_maker_surname_element = root.find('.//SellerDecisionMakerSurname')
+            if seller_decision_maker_surname_element is not None:
+                seller_decision_maker_surname_element.text = pii_dict['SellerDecisionMakerSurname']
+
+        if 'SellerDecisionMakerDateOfBirth' in pii_dict:
+            seller_decision_maker_dob_element = root.find('.//SellerDecisionMakerDateOfBirth')
+            if seller_decision_maker_dob_element is not None:
+                seller_decision_maker_dob_element.text = pii_dict['SellerDecisionMakerDateOfBirth']
+
+        if 'CountryOfBranchResponsibleForInvestmentDecision' in pii_dict:
+            country_of_branch_investment_element = root.find('.//CountryOfBranchResponsibleForInvestmentDecision')
+            if country_of_branch_investment_element is not None:
+                country_of_branch_investment_element.text = pii_dict['CountryOfBranchResponsibleForInvestmentDecision']
+
+        if 'CountryOfBranchSupervisingExecution' in pii_dict:
+            country_of_branch_execution_element = root.find('.//CountryOfBranchSupervisingExecution')
+            if country_of_branch_execution_element is not None:
+                country_of_branch_execution_element.text = pii_dict['CountryOfBranchSupervisingExecution']
+
+        if 'ExecutionWithinFirm' in pii_dict:
+            execution_element = root.find('.//ExecutionWithinFirm')
+            if execution_element is not None:
+                execution_element.text = pii_dict['ExecutionWithinFirm']
