@@ -1,55 +1,34 @@
-Here's a simple workflow breakdown based on your Snowflake implementation. This is designed for you to easily translate into a Microsoft Visio block diagram:
-
-1. PII Data Upload (Source)
-PII Data Clients (Banks/Financial Institutions):
-Send individual PII data in XML format.
-2. Stage in Snowflake (Staging Area)
-Snowflake Stage:
-Stores incoming PII data files temporarily before parsing and processing.
-3. Temp Table Creation (PII Data Storage)
-Temporary Table:
-Temporary storage in Snowflake for processing the incoming PII data.
-4. Parsing and Loading (UDF Parsing Logic)
-UDF (Java-based):
-Parses the incoming XML.
-Extracts the relevant PII data and loads it into the PII_DATA Table.
-5. PII_DATA Table (Storing Masked Data)
-PII_DATA Table:
-Stores the parsed and masked PII data with the following masking policies applied:
-Role-based Masking
-Differential Privacy Admin Policies
-Schema-based Masking
-Projection Policies
-6. Trade File Upload (Source)
-Trade File Upload:
-Trade data uploaded from clients in XML format.
-7. Stage for Trade Files (Trade Data)
-Snowflake Stage for Trade Data:
-Stores the incoming trade files temporarily.
-8. Temp Table for Trade Data
-Temporary Table (Trade Data):
-Temporary storage in Snowflake for processing trade data.
-9. Extract Vault ID (UDF Logic)
-UDF (Python-based):
-Extracts PII Vault ID from the trade XML.
-10. Enriching Trade Data with PII (Enrichment UDF)
-Enrichment UDF (Python-based):
-Extracts Vault ID from trade data.
-Matches Vault ID with data in the PII_DATA Table.
-Enriches the trade XML with the corresponding PII data (using matched Vault ID).
-Generates the enriched XML.
-11. S3 File Generation
-S3 Bucket:
-Enriched XML is stored in an S3 Bucket for future use.
-12. Final Submission
-Submission to NCA:
-Enriched data is now ready for submission to the National Competent Authority (NCA).
-High-Level Flow:
-PII Data Client → Snowflake Stage (PII Data) → Parse XML (UDF Java) → PII_DATA Table
-Trade Data Client → Snowflake Stage (Trade Data) → Extract Vault ID (UDF Python) → Enrich Data (UDF Python) → Store Enriched XML in S3
-Final Enriched XML → Ready for submission to NCA.
-Flow Diagram Key:
-Rectangles represent processes or stages.
-Arrows represent data flow.
-Diamonds can represent decision points (like checking Vault ID matches).
-Cylinders can represent databases or storage locations like Snowflake tables or S3.
+General and Business-Specific Questions for the Portal Team
+1. Data Submission and Uploading
+What are the formats supported for uploading PII data (e.g., XML, CSV)?
+How does the portal ensure smooth handling of large file uploads and any associated size limitations?
+What feedback and notifications does the portal provide to users during and after the upload process?
+2. Security and Privacy
+How does the portal ensure data security during the upload process, and what encryption mechanisms are in place?
+What masking mechanisms are implemented to ensure that only the necessary PII Vault ID is visible to users, while keeping the actual PII data secure?
+How does the portal manage role-based access control (RBAC) to restrict who can view and manage sensitive PII?
+3. PII Vault ID Management and Integration
+How does the portal handle the generation and retrieval of PII Vault IDs, and what mechanisms are in place to ensure their uniqueness and accuracy?
+How is the integration with the PII Vault managed for querying and enriching transaction reports with PII data?
+4. Search and Query Capabilities
+What search capabilities will the portal provide for users to easily find PII Vault IDs or specific PII records?
+How will the portal handle queries related to specific fields in the PII, and can users filter/search based on data attributes (e.g., date of birth, surname)?
+5. Error Handling and User Notifications
+How does the portal notify users of errors in the upload process or file validation issues?
+Are there clear and informative error messages displayed to users, and is there a way to track the status of ongoing submissions (e.g., processing, completed, failed)?
+6. UI/UX and User Workflow
+What is the overall user flow for submitting PII data, and how is the process optimized for ease of use?
+Can users review or preview PII data before uploading, and how are masked details displayed in the UI?
+Does the portal allow users to track the status of their files (e.g., whether the file is pending processing, successfully loaded, or contains errors)?
+7. Scalability and Performance
+How does the portal handle scalability as the volume of uploaded files increases, and what measures are in place to ensure high performance with increasing users?
+Are there any limitations on the number of uploads or simultaneous file handling by the portal?
+8. API and Backend Communication
+What APIs are available to interact with the PII Vault from the portal, and how is data passed between the portal and the backend?
+What measures are in place to handle potential timeouts or failures in API calls during the file upload and retrieval process?
+9. User Experience and Customization
+Is there flexibility in the UI for future customization or additional features based on customer requests?
+What provisions are in place for clients to customize the portal experience (e.g., user interface, file handling preferences)?
+10. Monitoring and Reporting
+How are the portal’s operations monitored, and are there performance analytics or logs available to track usage and errors?
+Are there reporting mechanisms in place for clients to view the history of uploaded files and any associated issues (e.g., failed uploads, status updates)?
