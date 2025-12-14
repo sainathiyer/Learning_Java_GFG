@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema elementFormDefault="qualified" version="1.0" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	
+<!-- *************************************************************************** -->
+	
+<!-- ****************   Globale Datentypen fuer Webservice   ******************* -->
+	
+<!-- *************************************************************************** -->
+
+	
+<!-- Webservice Response -->
+	
+<xsd:complexType name="outType">
+		
+<xsd:sequence>
+			
+<!-- MeldungsId / ReportId -->
+			
+<xsd:element name="meldungsId" type="xsd:int"/>
+			
+<!-- Meldezeitpunkt der Meldung / Timestamp of the report -->
+			
+<xsd:element name="meldezeitpunkt" type="xsd:dateTime"/>
+			
+<!-- Kundenreferenz aus dem Request / Client reference from the request -->
+			
+<xsd:element name="kundenreferenz" type="kundenreferenzType" minOccurs="0"/>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	
+<xsd:simpleType name="kundenreferenzType">
+		
+<xsd:restriction base="xsd:string">
+			
+<xsd:pattern value="[A-Za-z0-9_/\-\+\(\)\.,]{1,20}"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	
+<xsd:simpleType name="base64StringType">
+		
+<xsd:restriction base="xsd:base64Binary">
+			
+<xsd:minLength value="1"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	
+<xsd:simpleType name="base64StringPdfType">
+		
+<xsd:annotation>
+			
+<xsd:documentation>Base64 kodierte PDF-Datei (file signature 25 50 44 46)</xsd:documentation>
+		</xsd:annotation>
+		
+<xsd:restriction base="base64StringType">
+			
+<xsd:pattern value="JVBER.*"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	
+<xsd:simpleType name="base64StringMSOfficeType">
+		
+<xsd:annotation>
+			
+<xsd:documentation>Base64 kodierte Microsoft Office-Datei, 97-2003 und neuer (file signature D0 CF 11 E0 A1 B1 1A E1 / 50 4B 03 04 14 00 06 00)</xsd:documentation>
+		</xsd:annotation>
+		
+<xsd:restriction base="base64StringType">
+			
+<xsd:pattern value="(0M8R4KGxGu|UEsDBBQABg).*"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	
+<xsd:simpleType name="base64StringZipType">
+		
+<xsd:annotation>
+			
+<xsd:documentation>Base64 kodierte ZIP-Datei (file signature 50 4B 03 04)</xsd:documentation>
+		</xsd:annotation>
+		
+<xsd:restriction base="base64StringType">
+			
+<xsd:pattern value="UEsDB.*"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	
+<xsd:simpleType name="base64StringGzType">
+		
+<xsd:annotation>
+			
+<xsd:documentation>Base64 kodierte GZIP-Datei (file signature 1F 8B 08)</xsd:documentation>
+		</xsd:annotation>
+		
+<xsd:restriction base="base64StringType">
+			
+<xsd:pattern value="H4sI.*"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	
+<xsd:simpleType name="base64StringZipGzType">
+		
+<xsd:annotation>
+			
+<xsd:documentation>Base64 kodierte ZIP- oder GZIP-Datei (file signature 50 4B 03 04 / 1F 8B 08)</xsd:documentation>
+		</xsd:annotation>
+		
+<xsd:restriction base="base64StringType">
+			
+<xsd:pattern value="(UEsDB|H4sI).*"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	
+<xsd:simpleType name="base64StringZipMSOfficeType">
+		
+<xsd:annotation>
+			
+<xsd:documentation>Base64 kodierte ZIP- oder Microsoft Office-Datei, 97-2003 und neuer (file signature 50 4B 03 04 / D0 CF 11 E0 A1 B1 1A E1 / 50 4B 03 04 14 00 06 00)</xsd:documentation>
+		</xsd:annotation>
+		
+<xsd:restriction base="base64StringType">
+			
+<xsd:pattern value="(UEsDB|0M8R4KGxGu).*"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	
+<xsd:simpleType name="base64StringPdfMSOfficeType">
+		
+<xsd:annotation>
+			
+<xsd:documentation>Base64 kodierte PDF- oder Microsoft Office-Datei, 97-2003 und neuer (file signature 25 50 44 46 / D0 CF 11 E0 A1 B1 1A E1 / 50 4B 03 04 14 00 06 00)</xsd:documentation>
+		</xsd:annotation>
+		
+<xsd:restriction base="base64StringType">
+			
+<xsd:pattern value="(JVBER|0M8R4KGxGu|UEsDBBQABg).*"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	
+<xsd:simpleType name="base64StringZipPdfType">
+		
+<xsd:annotation>
+			
+<xsd:documentation>Base64 kodierte ZIP- oder PDF-Datei (file signature 50 4B 03 04 / 25 50 44 46)</xsd:documentation>
+		</xsd:annotation>
+		
+<xsd:restriction base="base64StringType">
+			
+<xsd:pattern value="(UEsDB|JVBER).*"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	
+<xsd:simpleType name="base64StringZipGzPdfType">
+		
+<xsd:annotation>
+			
+<xsd:documentation>Base64 kodierte ZIP-, GZIP- oder PDF-Datei (file signature 50 4B 03 04 / 1F 8B 08 / 25 50 44 46)</xsd:documentation>
+		</xsd:annotation>
+		
+<xsd:restriction base="base64StringType">
+			
+<xsd:pattern value="(UEsDB|H4sI|JVBER).*"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	
+<xsd:simpleType name="base64StringMSOfficeOOXMLType">
+		
+<xsd:annotation>
+			
+<xsd:documentation>Base64 kodierte Microsoft Office Open XML Format (OOXML), 2007 und neuer (file signature 50 4B 03 04 14 00 06 00)</xsd:documentation>
+		</xsd:annotation>
+		
+<xsd:restriction base="base64StringType">
+			
+<xsd:pattern value="UEsDBBQABg.*"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+
+</xsd:schema>

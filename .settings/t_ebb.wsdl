@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions targetNamespace="http://www.bafin.de/mvp/ebb/" xmlns:ns0="http://www.bafin.de/mvp/ebb/" xmlns:wsp200607="http://www.w3.org/2006/07/ws-policy" xmlns:wsp200409="http://schemas.xmlsoap.org/ws/2004/09/policy" xmlns:wsp="http://www.w3.org/ns/ws-policy" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/" xmlns:soap11="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/">
+<wsdl:types xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+<xsd:schema>
+<xsd:import schemaLocation="t_ebb.xsd1.xsd" namespace="http://www.bafin.de/mvp/ebb/"/>
+<xsd:import schemaLocation="t_ebb.xsd3.xsd" namespace="http://www.bafin.de/mvp/ebb/"/></xsd:schema></wsdl:types>
+<wsdl:message name="submitRequest">
+<wsdl:part name="parameters" element="xsns:submit" xmlns:xsns="http://www.bafin.de/mvp/ebb/"/></wsdl:message>
+<wsdl:message name="submitResponse">
+<wsdl:part name="parameters" element="xsns:submitResponse" xmlns:xsns="http://www.bafin.de/mvp/ebb/"/></wsdl:message>
+<wsdl:portType name="MVP_EBB">
+<wsdl:operation name="submit">
+<wsdl:input name="submitRequest" message="ns0:submitRequest"/>
+<wsdl:output name="submitResponse" message="ns0:submitResponse"/></wsdl:operation></wsdl:portType>
+<wsdl:binding name="MVP_EBBSOAP" type="ns0:MVP_EBB">
+<soap11:binding transport="http://schemas.xmlsoap.org/soap/http" style="document"/>
+<wsdl:operation name="submit">
+<soap11:operation soapAction="http://www.bafin.de/mvp/ebb/submit" style="document"/>
+<wsdl:input name="submitRequest">
+<soap11:body use="literal"/></wsdl:input>
+<wsdl:output name="submitResponse">
+<soap11:body use="literal"/></wsdl:output></wsdl:operation></wsdl:binding>
+<wsdl:service name="MVP_EBB">
+<wsdl:port name="MVP_EBBSOAP" binding="ns0:MVP_EBBSOAP">
+<soap11:address location="https://portal.mvp.bafin.de:444/services/ws/ebb"/></wsdl:port>
+<wsdl:port name="MVP_EBBSOAP.0" binding="ns0:MVP_EBBSOAP">
+<soap11:address location="https://portal.mvp.bafin.de:444/services/ws/ebb"/></wsdl:port></wsdl:service></wsdl:definitions>
